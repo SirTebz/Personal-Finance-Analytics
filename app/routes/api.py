@@ -1,13 +1,18 @@
 from datetime import date
+import csv
+import io
+from decimal import Decimal, InvalidOperation
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, Response, jsonify, request
 from sqlalchemy import or_
 
 from app.extensions import db
 from app.models.category import Category
 from app.models.transaction import Transaction
+from app.models.budget import Budget
 from app.services.validation import VALID_TRANSACTION_TYPES, validate_transaction
 from app.analytics.dashboard import dashboard_data, parse_date_range
+from app.services.csv_import import parse_csv, validate_csv_rows
 
 api_bp = Blueprint("api", __name__)
 
@@ -122,3 +127,64 @@ def delete_transaction(transaction_id):
     transaction.is_deleted = True
     db.session.commit()
     return "", 204
+
+
+@api_bp.get("/budgets")
+def list_budgets():
+    month = request.args.get("month", type=int)
+    year = request.args.get("year", type=int)
+    query = Budget.query.join(Category).order_by(Budget.year.desc(), Budget.month.desc(), Category.name)
+    if month:
+        query = query.filter(Budget.month == month)
+    if year:
+        query = query.filter(Budget.year == year)
+    data = []
+    for budget in query.all():
+        actual = db.session.query(db.func.coalesce(db.func.sum(Transaction.amount), 0)).filter(Transaction.category_id == budget.category_id, Transaction.transaction_type == "Expense", Transaction.is_deleted.is_(False), db.extract("month", Transaction.transaction_date) == budget.month, db.extract("year", Transaction.transaction_date) == budget.year).scalar()
+        actual = Decimal(actual or 0)
+        data.append({"id": budget.id, "category_id": budget.category_id, "category": budget.category.name, "month": budget.month, "year": budget.year, "amount": float(budget.amount), "actual": float(actual), "remaining": float(budget.amount - actual), "percentage_used": round(float(actual / budget.amount * 100), 2) if budget.amount else 0})
+    return jsonify({"data": data})
+
+
+@api_bp.post("/budgets")
+def create_budget():
+    payload = request.get_json(silent=True) or {}
+    try:
+        month, year = int(payload.get("month")), int(payload.get("year"))
+        amount = Decimal(str(payload.get("amount"))).quantize(Decimal("0.01"))
+    except (TypeError, ValueError, InvalidOperation):
+        return jsonify({"error": "Month, year, and amount are required."}), 400
+    category = db.session.get(Category, payload.get("category_id"))
+    if not category or category.transaction_type != "Expense" or not 1 <= month <= 12 or year < 2000 or amount < 0:
+        return jsonify({"error": "Provide a valid expense category, period, and non-negative amount."}), 400
+    if Budget.query.filter_by(category_id=category.id, month=month, year=year).first():
+        return jsonify({"error": "A budget already exists for this category and month."}), 409
+    budget = Budget(category_id=category.id, month=month, year=year, amount=amount)
+    db.session.add(budget)
+    db.session.commit()
+    return jsonify({"data": {"id": budget.id}}), 201
+
+
+@api_bp.post("/import/csv")
+def import_csv():
+    rows, parse_errors = parse_csv(request.files.get("file"))
+    if parse_errors:
+        return jsonify({"rows_processed": 0, "imported": 0, "rejected": len(parse_errors), "errors": parse_errors}), 400
+    valid, rejected = validate_csv_rows(rows)
+    for cleaned in valid:
+        db.session.add(Transaction(category_id=cleaned["category"].id, transaction_date=cleaned["transaction_date"], transaction_type=cleaned["transaction_type"], description=cleaned["description"], amount=cleaned["amount"], payment_method=cleaned["payment_method"], notes=cleaned["notes"]))
+    db.session.commit()
+    return jsonify({"rows_processed": len(rows), "imported": len(valid), "rejected": len(rejected), "errors": rejected})
+
+
+@api_bp.get("/export/csv")
+def export_csv():
+    query = Transaction.query.filter_by(is_deleted=False).join(Category)
+    if request.args.get("type") in VALID_TRANSACTION_TYPES:
+        query = query.filter(Transaction.transaction_type == request.args["type"])
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["date", "type", "description", "amount", "category", "payment_method", "notes"])
+    for transaction in query.order_by(Transaction.transaction_date.desc()).all():
+        writer.writerow([transaction.transaction_date.isoformat(), transaction.transaction_type, transaction.description, f"{transaction.amount:.2f}", transaction.category.name, transaction.payment_method or "", transaction.notes or ""])
+    return Response(output.getvalue(), mimetype="text/csv", headers={"Content-Disposition": "attachment; filename=transactions.csv"})
