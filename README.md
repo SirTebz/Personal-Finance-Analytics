@@ -4,7 +4,7 @@ A Flask-based personal finance analytics portfolio project for recording transac
 
 ## Current status
 
-Phase 1 is complete: the application foundation, configuration, relational models, base dashboard UI, and health endpoint are in place. Transaction management, analytics, budgets, import/export, and portfolio documentation follow in incremental phases.
+The application supports categories, transactions, date-filtered dashboard KPIs and charts, budgets, and validated CSV import/export. The included seed script creates only synthetic demo data.
 
 ## Quick start
 
@@ -24,3 +24,15 @@ Copy `.env.example` to `.env` and set `DATABASE_URL` to connect to SQL Server. W
 ```powershell
 pytest
 ```
+
+## Demo data
+
+Run `python scripts/generate_sample_data.py` once after setup. It generates 12 months of 2026 synthetic data in your configured database.
+
+## Portfolio analysis
+
+`database/schema.sql` and `database/queries/financial_analysis.sql` provide SQL Server reference assets. The notebooks show data cleaning, exploratory analysis, and reproducible insights using an exported CSV. See `docs/` for the architecture, data dictionary, and calculation definitions.
+
+## Limitations
+
+This is a local portfolio application with synthetic data. It has no bank integration, investment tracking, tax calculations, financial advice, or forecasting.

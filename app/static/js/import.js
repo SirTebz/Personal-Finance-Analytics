@@ -1,0 +1,1 @@
+document.getElementById('import-form').addEventListener('submit',async e=>{e.preventDefault();const r=await fetch('/api/import/csv',{method:'POST',body:new FormData(e.target)});document.getElementById('result').textContent=JSON.stringify(await r.json(),null,2);});
