@@ -63,6 +63,42 @@ def create_category():
     return jsonify({"data": category_payload(category)}), 201
 
 
+@api_bp.put("/categories/<int:category_id>")
+def update_category(category_id):
+    category = db.session.get(Category, category_id)
+    if not category:
+        return jsonify({"error": "Category not found."}), 404
+    payload = request.get_json(silent=True) or {}
+    name = str(payload.get("name", "")).strip()
+    transaction_type = payload.get("transaction_type")
+    if not name or transaction_type not in VALID_TRANSACTION_TYPES:
+        return jsonify({"error": "Provide a category name and valid transaction type."}), 400
+    duplicate = Category.query.filter(Category.name == name, Category.id != category_id).first()
+    if duplicate:
+        return jsonify({"error": "A category with this name already exists."}), 409
+    if category.transactions and transaction_type != category.transaction_type:
+        return jsonify({"error": "Cannot change type for a category with transactions."}), 409
+    category.name, category.transaction_type = name, transaction_type
+    category.description = str(payload.get("description", "")).strip() or None
+    category.is_active = bool(payload.get("is_active", True))
+    db.session.commit()
+    return jsonify({"data": category_payload(category)})
+
+
+@api_bp.delete("/categories/<int:category_id>")
+def delete_category(category_id):
+    category = db.session.get(Category, category_id)
+    if not category:
+        return jsonify({"error": "Category not found."}), 404
+    if category.transactions or category.budgets:
+        category.is_active = False
+        db.session.commit()
+        return "", 204
+    db.session.delete(category)
+    db.session.commit()
+    return "", 204
+
+
 @api_bp.get("/transactions")
 def list_transactions():
     query = Transaction.query.filter_by(is_deleted=False).join(Category)
@@ -163,6 +199,33 @@ def create_budget():
     db.session.add(budget)
     db.session.commit()
     return jsonify({"data": {"id": budget.id}}), 201
+
+
+@api_bp.put("/budgets/<int:budget_id>")
+def update_budget(budget_id):
+    budget = db.session.get(Budget, budget_id)
+    if not budget:
+        return jsonify({"error": "Budget not found."}), 404
+    payload = request.get_json(silent=True) or {}
+    try:
+        amount = Decimal(str(payload.get("amount"))).quantize(Decimal("0.01"))
+    except (TypeError, ValueError, InvalidOperation):
+        return jsonify({"error": "Provide a valid budget amount."}), 400
+    if amount < 0:
+        return jsonify({"error": "Budget amount cannot be negative."}), 400
+    budget.amount = amount
+    db.session.commit()
+    return jsonify({"data": {"id": budget.id, "amount": float(budget.amount)}})
+
+
+@api_bp.delete("/budgets/<int:budget_id>")
+def delete_budget(budget_id):
+    budget = db.session.get(Budget, budget_id)
+    if not budget:
+        return jsonify({"error": "Budget not found."}), 404
+    db.session.delete(budget)
+    db.session.commit()
+    return "", 204
 
 
 @api_bp.post("/import/csv")

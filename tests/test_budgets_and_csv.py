@@ -21,6 +21,10 @@ def test_budget_compares_actual_spending(client, app):
     assert budget["actual"] == 650.0
     assert budget["remaining"] == 1350.0
     assert budget["percentage_used"] == 32.5
+    updated = client.put(f"/api/budgets/{budget['id']}", json={"amount": "2500"})
+    assert updated.status_code == 200
+    assert updated.json["data"]["amount"] == 2500.0
+    assert client.delete(f"/api/budgets/{budget['id']}").status_code == 204
 
 
 def test_csv_import_reports_invalid_rows_and_exports(client):

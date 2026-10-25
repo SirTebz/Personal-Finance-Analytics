@@ -41,3 +41,10 @@ def test_categories_require_unique_name(client):
     create_category(client)
     duplicate = client.post("/api/categories", json={"name": "Groceries", "transaction_type": "Expense"})
     assert duplicate.status_code == 409
+
+
+def test_category_update_and_safe_deactivation(client):
+    category = create_category(client)
+    updated = client.put(f"/api/categories/{category['id']}", json={"name": "Food", "transaction_type": "Expense", "is_active": True})
+    assert updated.status_code == 200
+    assert updated.json["data"]["name"] == "Food"
