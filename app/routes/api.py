@@ -7,6 +7,7 @@ from app.extensions import db
 from app.models.category import Category
 from app.models.transaction import Transaction
 from app.services.validation import VALID_TRANSACTION_TYPES, validate_transaction
+from app.analytics.dashboard import dashboard_data, parse_date_range
 
 api_bp = Blueprint("api", __name__)
 
@@ -14,6 +15,16 @@ api_bp = Blueprint("api", __name__)
 @api_bp.get("/health")
 def health():
     return jsonify({"status": "ok"})
+
+
+@api_bp.get("/dashboard")
+def dashboard():
+    (start_date, end_date), error = parse_date_range(request.args)
+    if error:
+        return jsonify({"error": error}), 400
+    if start_date and end_date and start_date > end_date:
+        return jsonify({"error": "Start date must not be after end date."}), 400
+    return jsonify({"data": dashboard_data(start_date, end_date)})
 
 
 def category_payload(category):

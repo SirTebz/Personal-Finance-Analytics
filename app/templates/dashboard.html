@@ -1,13 +1,18 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="py-4">
+<section class="py-4" id="dashboard">
   <p class="text-uppercase text-primary fw-semibold small mb-2">Analytics workspace</p>
   <h1 class="display-6 fw-bold">Understand where your money goes.</h1>
   <p class="lead text-secondary col-lg-8">Track income and spending, set category budgets, and turn everyday transactions into clear financial insights.</p>
 </section>
-<section class="row g-3" aria-label="Dashboard status">
-  <div class="col-md-4"><div class="card h-100 border-0 shadow-sm"><div class="card-body"><h2 class="h6 text-secondary">Transactions</h2><p class="mb-0">Management module is being prepared.</p></div></div></div>
-  <div class="col-md-4"><div class="card h-100 border-0 shadow-sm"><div class="card-body"><h2 class="h6 text-secondary">Analytics</h2><p class="mb-0">Your dashboard will use real transaction data.</p></div></div></div>
-  <div class="col-md-4"><div class="card h-100 border-0 shadow-sm"><div class="card-body"><h2 class="h6 text-secondary">Currency</h2><p class="mb-0">South African rand (ZAR).</p></div></div></div>
+<form class="row g-2 align-items-end mb-4" id="date-filter"><div class="col-sm-4"><label class="form-label" for="start-date">From</label><input class="form-control" type="date" id="start-date"></div><div class="col-sm-4"><label class="form-label" for="end-date">To</label><input class="form-control" type="date" id="end-date"></div><div class="col-sm-4"><button class="btn btn-primary w-100" type="submit">Apply date range</button></div></form>
+<div id="dashboard-error" class="alert alert-danger d-none" role="alert"></div>
+<section class="row g-3" aria-label="Financial metrics">
+  <div class="col-md-3"><div class="card metric-card h-100 border-0 shadow-sm"><div class="card-body"><h2 class="h6 text-secondary">Total income</h2><p class="h3 mb-0" id="total-income">R 0.00</p></div></div></div>
+  <div class="col-md-3"><div class="card metric-card h-100 border-0 shadow-sm"><div class="card-body"><h2 class="h6 text-secondary">Total expenses</h2><p class="h3 mb-0" id="total-expenses">R 0.00</p></div></div></div>
+  <div class="col-md-3"><div class="card metric-card h-100 border-0 shadow-sm"><div class="card-body"><h2 class="h6 text-secondary">Net cash flow</h2><p class="h3 mb-0" id="net-cash-flow">R 0.00</p></div></div></div>
+  <div class="col-md-3"><div class="card metric-card h-100 border-0 shadow-sm"><div class="card-body"><h2 class="h6 text-secondary">Savings rate</h2><p class="h3 mb-0" id="savings-rate">0.0%</p></div></div></div>
 </section>
+<section class="row g-3 mt-1"><div class="col-lg-7"><div class="card border-0 shadow-sm"><div class="card-body"><h2 class="h5">Income vs expenses</h2><canvas id="cashflow-chart" aria-label="Monthly income and expense chart"></canvas></div></div></div><div class="col-lg-5"><div class="card border-0 shadow-sm"><div class="card-body"><h2 class="h5">Spending by category</h2><canvas id="category-chart" aria-label="Expense category chart"></canvas></div></div></div></section>
+<section class="card border-0 shadow-sm mt-3"><div class="card-body"><h2 class="h5">Top expenses</h2><div class="table-responsive"><table class="table"><thead><tr><th>Date</th><th>Description</th><th>Category</th><th class="text-end">Amount</th></tr></thead><tbody id="top-expenses"><tr><td colspan="4" class="text-secondary">No expenses in this period.</td></tr></tbody></table></div></div></section>
 {% endblock %}
