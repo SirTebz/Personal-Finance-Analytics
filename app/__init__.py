@@ -17,6 +17,7 @@ def create_app(test_config=None):
         SQLALCHEMY_DATABASE_URI=os.getenv("DATABASE_URL") or default_database,
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         MAX_CONTENT_LENGTH=5 * 1024 * 1024,
+        SEED_DEMO_DATA=os.getenv("SEED_DEMO_DATA", "false").lower() == "true",
     )
     if test_config:
         app.config.update(test_config)
@@ -28,4 +29,7 @@ def create_app(test_config=None):
     with app.app_context():
         from app import models  # noqa: F401
         db.create_all()
+        if app.config["SEED_DEMO_DATA"]:
+            from app.services.demo_data import seed_demo_data
+            seed_demo_data()
     return app

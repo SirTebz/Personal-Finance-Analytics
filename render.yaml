@@ -11,3 +11,5 @@ services:
         sync: false
       - key: DATABASE_URL
         sync: false
+      - key: SEED_DEMO_DATA
+        value: "true"

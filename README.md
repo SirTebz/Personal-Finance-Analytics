@@ -40,3 +40,5 @@ This is a local portfolio application with synthetic data. It has no bank integr
 ## Render deployment
 
 This repository includes `render.yaml` for a free Flask web service. In Render, create the service from this GitHub repository, then set `SECRET_KEY` to a long, private random value. Leave `DATABASE_URL` blank for a temporary SQLite portfolio demo. SQLite storage on a free Render web service is ephemeral, so data may reset when the service restarts or deploys.
+
+Set `SEED_DEMO_DATA=true` on Render to automatically create the synthetic 2026 demo dataset whenever its database starts empty. The setting is safe to leave enabled: it never adds demo records to a database that already has transactions.
