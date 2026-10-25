@@ -36,3 +36,7 @@ Run `python scripts/generate_sample_data.py` once after setup. It generates 12 m
 ## Limitations
 
 This is a local portfolio application with synthetic data. It has no bank integration, investment tracking, tax calculations, financial advice, or forecasting.
+
+## Render deployment
+
+This repository includes `render.yaml` for a free Flask web service. In Render, create the service from this GitHub repository, then set `SECRET_KEY` to a long, private random value. Leave `DATABASE_URL` blank for a temporary SQLite portfolio demo. SQLite storage on a free Render web service is ephemeral, so data may reset when the service restarts or deploys.
